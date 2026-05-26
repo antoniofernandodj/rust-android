@@ -1,14 +1,14 @@
-# sharedroid
+# rustandroid
 
 Hello World Android app built with [iced](https://iced.rs/) (Rust GUI framework).
 
 ## Pré-requisitos mínimos
 
 | Ferramenta  | Versão          | Observação                         |
-|-------------|-----------------|-------------------------------------|
+| ----------- | --------------- | ---------------------------------- |
 | Rust        | stable (≥ 1.80) | via [rustup.rs](https://rustup.rs) |
-| Java        | 17              | necessário para o `sdkmanager`      |
-| curl / wget | qualquer        | para baixar o SDK Android           |
+| Java        | 17              | necessário para o `sdkmanager`     |
+| curl / wget | qualquer        | para baixar o SDK Android          |
 
 > Java 17 é instalado automaticamente pelo `make setup` via [SDKMAN](https://sdkman.io).
 
@@ -20,7 +20,7 @@ make setup
 
 # 2. Compilar o APK debug
 make build
-# → target/debug/apk/sharedroid.apk (≈ 170 MB em debug)
+# → target/debug/apk/rustandroid.apk (≈ 170 MB em debug)
 
 # 3. Instalar em um device Android conectado
 make install
@@ -32,7 +32,7 @@ cargo run -p desktop
 ## Estrutura do projeto
 
 ```
-sharedroid/
+rustandroid/
 ├── src/lib.rs          ← código da UI (iced Hello World)
 ├── desktop/            ← wrapper para rodar no desktop
 │   └── src/main.rs
@@ -66,11 +66,11 @@ O `android_main` em `src/lib.rs` chama `set_android_app(android_app)` antes de
 
 ## Alvos Android
 
-| ABI              | Target Rust                |
-|------------------|----------------------------|
-| arm64-v8a        | `aarch64-linux-android`    |
-| armeabi-v7a      | `armv7-linux-androideabi`  |
-| x86_64 (emulador)| `x86_64-linux-android`     |
+| ABI               | Target Rust               |
+| ----------------- | ------------------------- |
+| arm64-v8a         | `aarch64-linux-android`   |
+| armeabi-v7a       | `armv7-linux-androideabi` |
+| x86_64 (emulador) | `x86_64-linux-android`    |
 
 Por padrão só `aarch64` é compilado. Para adicionar outros, edite
 `build_targets` em `Cargo.toml` → `[package.metadata.android]`.

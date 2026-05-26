@@ -17,7 +17,7 @@ A tela seria apenas um "Hello, World!" centralizado.
 
 - **Sistema:** Linux x86_64
 - **Rust:** 1.90 (stable)
-- **Projeto inicial:** `cargo new sharedroid` — literalmente só um `println!`
+- **Projeto inicial:** `cargo new rustandroid` — literalmente só um `println!`
 
 Nada estava instalado: sem Android SDK, sem NDK, sem Java moderno, sem
 targets Android no rustup.
@@ -48,6 +48,7 @@ unzip ... -d ~/android-sdk/cmdline-tools/latest/
 ### Problema: plataforma android-34 incompatível com NDK 25.2
 
 Após instalar o NDK 25.2.9519653, o `cargo-apk` reclamou:
+
 > "Android SDK has no platforms installed"
 
 O NDK 25.2 suporta até API level **33**. Havíamos instalado `platforms;android-34`.
@@ -95,7 +96,7 @@ thread 'main' panicked: Bin is not compatible with Cdylib
 Separamos em dois membros:
 
 ```
-sharedroid/          ← lib Android (cdylib + rlib)
+rustandroid/          ← lib Android (cdylib + rlib)
 └── desktop/         ← binary separado para testar no Linux
 ```
 
@@ -251,7 +252,7 @@ fn android_main(android_app: iced_winit::android::AndroidApp) {
 ## Fase 7 — Primeiro APK funcionando (parcialmente)
 
 ```
-✅  APK built: target/debug/apk/sharedroid.apk  (170 MB debug)
+✅  APK built: target/debug/apk/rustandroid.apk  (170 MB debug)
 ```
 
 O app instalava e abria. Mas a tela mostrava apenas **cinza escuro** —
@@ -325,7 +326,7 @@ O APK instala, abre, e exibe "Hello, World!" centralizado em branco
 sobre fundo escuro — exatamente o objetivo.
 
 ```
-✅  APK built: target/debug/apk/sharedroid.apk  (170 MB debug)
+✅  APK built: target/debug/apk/rustandroid.apk  (170 MB debug)
 ```
 
 ---
@@ -356,7 +357,7 @@ Rendering
 ## Arquitetura final
 
 ```
-sharedroid/
+rustandroid/
 ├── src/
 │   ├── lib.rs              ← UI iced + android_main
 │   └── fonts/

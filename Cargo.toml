@@ -1,5 +1,5 @@
 [package]
-name    = "sharedroid"
+name    = "rustandroid"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,7 @@ edition = "2021"
 # cdylib → NativeActivity .so for Android
 # rlib   → linkable by the desktop/ workspace member
 [lib]
-name       = "sharedroid"
+name       = "rustandroid"
 crate-type = ["cdylib", "rlib"]
 path       = "src/lib.rs"
 
@@ -30,7 +30,7 @@ android_logger   = "0.14"
 
 # ── Android APK metadata ──────────────────────────────────────────────────────
 [package.metadata.android]
-package       = "com.example.sharedroid"
+package       = "com.example.rustandroid"
 label         = "HelloWorld"
 build_targets = ["aarch64-linux-android"]
 

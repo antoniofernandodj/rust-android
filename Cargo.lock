@@ -767,7 +767,7 @@ name = "desktop"
 version = "0.1.0"
 dependencies = [
  "iced",
- "sharedroid",
+ "rustandroid",
 ]
 
 [[package]]
@@ -2994,7 +2994,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sharedroid"
+name = "rustandroid"
 version = "0.1.0"
 dependencies = [
  "android-activity",

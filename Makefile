@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# sharedroid — Hello World Android app with iced (Rust)
+# rustandroid — Hello World Android app with iced (Rust)
 #
 # Usage:
 #   make setup      — install all dependencies (first time)
@@ -21,10 +21,10 @@ API_LEVEL    := 33
 ANDROID_TARGETS := aarch64-linux-android armv7-linux-androideabi \
                    x86_64-linux-android i686-linux-android
 
-APK_DEBUG   := target/debug/apk/sharedroid.apk
-APK_RELEASE := target/release/apk/sharedroid.apk
+APK_DEBUG   := target/debug/apk/rustandroid.apk
+APK_RELEASE := target/release/apk/rustandroid.apk
 
-PACKAGE     := com.example.sharedroid
+PACKAGE     := com.example.rustandroid
 ACTIVITY    := android.app.NativeActivity
 
 # ── Export env vars used by every recipe ─────────────────────────────────────
