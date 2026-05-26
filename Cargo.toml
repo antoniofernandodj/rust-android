@@ -1,0 +1,50 @@
+[package]
+name    = "sharedroid"
+version = "0.1.0"
+edition = "2021"
+
+# ── Crate type ────────────────────────────────────────────────────────────────
+# cdylib → NativeActivity .so for Android
+# rlib   → linkable by the desktop/ workspace member
+[lib]
+name       = "sharedroid"
+crate-type = ["cdylib", "rlib"]
+path       = "src/lib.rs"
+
+# ── Workspace ─────────────────────────────────────────────────────────────────
+[workspace]
+members = ["desktop"]
+
+# ── Common dependencies ───────────────────────────────────────────────────────
+[dependencies]
+iced = { version = "0.13", features = ["wgpu"] }
+
+# ── Android-only dependencies ─────────────────────────────────────────────────
+# Forces winit to include the NativeActivity backend and sets up the entry point.
+[target.'cfg(target_os = "android")'.dependencies]
+winit            = { version = "0.30", features = ["android-native-activity"] }
+android-activity = { version = "0.6",  features = ["native-activity"] }
+iced_winit       = { version = "0.13" }   # resolved to patches/iced_winit via [patch]
+log              = "0.4"
+android_logger   = "0.14"
+
+# ── Android APK metadata ──────────────────────────────────────────────────────
+[package.metadata.android]
+package       = "com.example.sharedroid"
+label         = "HelloWorld"
+build_targets = ["aarch64-linux-android"]
+
+[package.metadata.android.sdk]
+min_sdk_version    = 23
+target_sdk_version = 33
+
+[package.metadata.android.application]
+label = "Hello World"
+
+# ── Patches ───────────────────────────────────────────────────────────────────
+# iced_winit 0.13.0 imports winit::platform::modifier_supplement unconditionally,
+# which doesn't exist on Android.  The local patch guards it with
+# #[cfg(not(target_os = "android"))], and also adds the AndroidApp global needed
+# to pass the activity to winit's EventLoop on Android.
+[patch.crates-io]
+iced_winit = { path = "patches/iced_winit" }
