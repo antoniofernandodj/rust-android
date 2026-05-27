@@ -46,9 +46,19 @@ all: build
 # ── SETUP ─────────────────────────────────────────────────────────────────────
 
 ## Install every dependency needed to build the APK.
-setup: setup-java setup-android-sdk setup-rust
+setup: setup-java setup-android-sdk setup-rust keystore
 	@echo ""
 	@echo "✅  Setup complete. Run 'make build' to compile the APK."
+
+## Generate a local test keystore for release builds.
+keystore:
+	@if [ ! -f "release.keystore" ]; then \
+	  echo "── Generating release keystore ──────────────────────────────────────"; \
+	  keytool -genkeypair -v -keystore release.keystore -alias rustandroid -keyalg RSA -keysize 2048 -validity 10000 -storepass rustandroid -keypass rustandroid -dname "CN=RustAndroid, OU=Dev, O=Itemize, L=Unknown, ST=Unknown, C=BR"; \
+	  echo "Keystore OK ✓"; \
+	else \
+	  echo "Keystore already exists ✓"; \
+	fi
 
 ## Install Java 17 via SDKMAN (required by Android SDK tools).
 setup-java:
