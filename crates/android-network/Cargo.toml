@@ -3,6 +3,9 @@ name    = "android-network"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+stream = ["tokio/time", "futures"]
+
 [dependencies]
-tokio   = { version = "1", features = ["sync", "time", "rt"] }
-futures = "0.3"
+tokio   = { version = "1", features = ["sync"], optional = true }
+futures = { version = "0.3", optional = true }

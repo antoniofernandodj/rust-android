@@ -1,5 +1,3 @@
-use futures::Stream;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum BatteryHealth {
     Good,
@@ -39,29 +37,42 @@ impl BatteryState {
 pub struct BatteryManager;
 
 impl BatteryManager {
-    /// Return the current battery state.
+    /// Retorna o estado atual da bateria.
     ///
-    /// On Android: reads via `Intent.ACTION_BATTERY_CHANGED` using JNI.
-    /// On desktop: returns simulated data.
+    /// **Android**: lê via `Intent.ACTION_BATTERY_CHANGED` por JNI.
+    /// **Desktop**: retorna dados simulados.
     pub fn current() -> BatteryState {
-        BatteryState {
-            level: 0.85,
-            is_charging: false,
-            temperature_c: 28.5,
-            voltage_mv: 3800,
-            health: BatteryHealth::Good,
+        #[cfg(target_os = "android")]
+        {
+            // TODO: implementar leitura real via JNI
+            // Por ora retorna stub enquanto a implementação JNI não está pronta.
+            stub()
         }
+        #[cfg(not(target_os = "android"))]
+        stub()
     }
+}
 
-    /// Returns a `Stream` that emits the battery state periodically.
-    ///
-    /// On Android: emits when the state changes (every ~30 s).
-    /// On desktop: emits simulated data every 5 seconds.
-    pub fn stream() -> impl Stream<Item = BatteryState> {
-        use std::time::Duration;
-        futures::stream::unfold((), |_| async {
-            tokio::time::sleep(Duration::from_secs(5)).await;
-            Some((BatteryManager::current(), ()))
-        })
+fn stub() -> BatteryState {
+    BatteryState {
+        level: 0.85,
+        is_charging: false,
+        temperature_c: 28.5,
+        voltage_mv: 3800,
+        health: BatteryHealth::Good,
     }
+}
+
+/// Stream que emite o estado da bateria periodicamente.
+///
+/// Requer feature `stream` (ativa tokio + futures).
+/// **Não use no crate principal do app Android** — pode conflitar com o
+/// runtime que o iced/winit configura internamente.
+#[cfg(feature = "stream")]
+pub fn stream() -> impl futures::Stream<Item = BatteryState> {
+    use std::time::Duration;
+    futures::stream::unfold((), |_| async {
+        tokio::time::sleep(Duration::from_secs(5)).await;
+        Some((BatteryManager::current(), ()))
+    })
 }

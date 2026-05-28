@@ -3,6 +3,11 @@ name    = "android-battery"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+# Habilita BatteryManager::stream() — requer tokio runtime e futures.
+# Não ative no crate principal do app Android para evitar conflito de runtime.
+stream = ["tokio/time", "futures"]
+
 [dependencies]
-tokio   = { version = "1", features = ["sync", "time", "rt"] }
-futures = "0.3"
+tokio   = { version = "1", features = ["sync"], optional = true }
+futures = { version = "0.3", optional = true }

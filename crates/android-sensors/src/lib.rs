@@ -1,5 +1,3 @@
-use futures::Stream;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec3 {
     pub x: f32,
@@ -41,22 +39,23 @@ pub enum Sensor {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SamplingRate {
-    /// ~5 Hz (200 ms interval)
+    /// ~5 Hz (200 ms)
     Normal,
-    /// ~16 Hz (62 ms interval)
+    /// ~16 Hz (62 ms)
     Ui,
-    /// ~50 Hz (20 ms interval)
+    /// ~50 Hz (20 ms)
     Game,
-    /// As fast as possible (5 ms interval)
+    /// Máxima velocidade (5 ms)
     Fastest,
 }
 
+/// Stream de eventos de sensor.
+///
+/// Requer feature `stream` (ativa tokio + futures).
+/// **Não use no crate principal do app Android** diretamente.
+#[cfg(feature = "stream")]
 impl Sensor {
-    /// Returns a `Stream` that emits sensor events at the given sampling rate.
-    ///
-    /// On Android: registers a `SensorEventListener` via JNI.
-    /// On desktop: emits simulated data at the configured rate.
-    pub fn stream(self, rate: SamplingRate) -> impl Stream<Item = SensorEvent> {
+    pub fn stream(self, rate: SamplingRate) -> impl futures::Stream<Item = SensorEvent> {
         use std::time::Duration;
 
         let interval_ms: u64 = match rate {

@@ -1,5 +1,3 @@
-use futures::Stream;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum NetworkType {
     Wifi,
@@ -30,10 +28,10 @@ impl NetworkState {
 pub struct ConnectivityManager;
 
 impl ConnectivityManager {
-    /// Return the current network state.
+    /// Retorna o estado atual da rede.
     ///
-    /// On Android: reads via `ConnectivityManager` using JNI.
-    /// On desktop: returns simulated data.
+    /// **Android**: lê via `ConnectivityManager` por JNI.
+    /// **Desktop**: retorna dados simulados.
     pub fn current() -> NetworkState {
         NetworkState {
             is_connected: true,
@@ -42,16 +40,17 @@ impl ConnectivityManager {
             signal_strength: Some(-50),
         }
     }
+}
 
-    /// Returns a `Stream` that emits the network state periodically.
-    ///
-    /// On Android: emits when connectivity changes.
-    /// On desktop: emits simulated data every 10 seconds.
-    pub fn stream() -> impl Stream<Item = NetworkState> {
-        use std::time::Duration;
-        futures::stream::unfold((), |_| async {
-            tokio::time::sleep(Duration::from_secs(10)).await;
-            Some((ConnectivityManager::current(), ()))
-        })
-    }
+/// Stream que emite o estado da rede ao detectar mudanças.
+///
+/// Requer feature `stream` (ativa tokio + futures).
+/// **Não use no crate principal do app Android** diretamente.
+#[cfg(feature = "stream")]
+pub fn stream() -> impl futures::Stream<Item = NetworkState> {
+    use std::time::Duration;
+    futures::stream::unfold((), |_| async {
+        tokio::time::sleep(Duration::from_secs(10)).await;
+        Some((ConnectivityManager::current(), ()))
+    })
 }

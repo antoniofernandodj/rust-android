@@ -29,8 +29,9 @@ members = [
 
 # ── Common dependencies ───────────────────────────────────────────────────────
 [dependencies]
-iced = { version = "0.13", features = ["tokio", "wgpu"] }
-sysinfo = "0.31"
+iced            = { version = "0.13", features = ["tokio", "wgpu"] }
+sysinfo         = "0.31"
+android-battery = { path = "crates/android-battery" }
 
 # ── Android-only dependencies ─────────────────────────────────────────────────
 # Forces winit to include the NativeActivity backend and sets up the entry point.
