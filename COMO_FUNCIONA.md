@@ -435,3 +435,203 @@ A ordem sugerida para implementar o JNI dos próximos crates (do mais simples
 ao mais complexo): `android-haptics` → `android-notifications` →
 `android-sensors` → `android-network` → `android-permissions` →
 `android-push` → `android-workmanager`.
+
+---
+
+## Erros encontrados e como foram resolvidos
+
+### 1. `syn` v2 incompatível com o proc-macro (`android-jni-bridge`)
+
+**Erro:**
+```
+error[E0432]: unresolved imports `syn::AttributeArgs`, `syn::NestedMeta`
+```
+
+**Causa:** O `Cargo.toml` do crate especificava `syn = { version = "2" }`, mas
+o código do macro usava tipos da API do syn v1 (`AttributeArgs`, `NestedMeta`,
+`MetaNameValue { lit, .. }`). O syn v2 removeu esses tipos e mudou a forma de
+parsear atributos.
+
+**Solução:** Downgrade para `syn = { version = "1", features = ["full"] }`.
+O código do macro já estava correto para syn v1; só o `Cargo.toml` estava errado.
+
+```toml
+# antes
+syn = { version = "2", features = ["full"] }
+
+# depois
+syn = { version = "1", features = ["full"] }
+```
+
+---
+
+### 2. `tokio::sync::OnceCell` é async, não sync (`android-push`)
+
+**Erro:**
+```
+error[E0277]: `tokio::sync::broadcast::Sender<_>` is not a future
+error[E0308]: mismatched types — expected `&Sender<PushMessage>`, found future
+```
+
+**Causa:** O crate `android-push` usava `tokio::sync::OnceCell` para guardar
+o `broadcast::Sender` global. O método `get_or_init` do `tokio::sync::OnceCell`
+é `async` — ele retorna um `Future`, não uma referência direta. Mas a função
+`sender()` era síncrona, então o compilador reclamou da incompatibilidade de tipos.
+
+**Solução:** Trocar `tokio::sync::OnceCell` por `std::sync::OnceLock`, que é
+síncrono e foi estabilizado no Rust 1.70. O `get_or_init` do `OnceLock` recebe
+um closure síncrono e retorna `&T` diretamente.
+
+```rust
+// antes — errado: OnceCell::get_or_init é async
+use tokio::sync::OnceCell;
+static PUSH_TX: OnceCell<broadcast::Sender<PushMessage>> = OnceCell::const_new();
+
+// depois — correto: OnceLock::get_or_init é síncrono
+use std::sync::OnceLock;
+static PUSH_TX: OnceLock<broadcast::Sender<PushMessage>> = OnceLock::new();
+
+fn sender() -> &'static broadcast::Sender<PushMessage> {
+    PUSH_TX.get_or_init(|| {
+        let (tx, _) = broadcast::channel(32);
+        tx
+    })
+}
+```
+
+---
+
+### 3. APK de 4 MB sem o `.so` nativo — três causas diferentes
+
+Este sintoma apareceu três vezes, cada vez por um motivo diferente.
+
+#### 3a. `ANDROID_HOME` não definido no shell
+
+**Sintoma:** `cargo apk build` direto no terminal produzia um APK de 4 MB.
+`make build` funcionava normalmente (183 MB).
+
+**Causa:** O `Makefile` define `ANDROID_HOME ?= $(HOME)/android-sdk` e exporta
+a variável antes de chamar `cargo apk`. Mas rodando `cargo apk build`
+diretamente num shell novo, `ANDROID_HOME` não estava definido. O cargo-apk
+não encontrava o SDK e criava um APK vazio (só o `AndroidManifest.xml`).
+
+**Erro reportado pelo cargo-apk:**
+```
+Error: Android SDK is not found. Please set the path to the Android SDK
+with the $ANDROID_HOME environment variable.
+```
+
+**Solução:** Adicionar as variáveis ao `~/.zshrc` para que fiquem disponíveis
+em qualquer terminal:
+
+```sh
+export ANDROID_HOME="$HOME/android-sdk"
+export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/25.2.9519653"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+```
+
+#### 3b. Features do tokio conflitando com o runtime do iced no Android
+
+**Sintoma:** Após adicionar `android-battery` como dependência do app, o APK
+caiu de 183 MB para 4 MB. O `.so` parou de ser gerado mesmo com `make build`.
+
+**Causa:** O `android-battery` declarava `tokio = { features = ["sync", "time", "rt"] }`
+como dependência obrigatória. A feature `rt` (tokio runtime) conflitava com o
+runtime que o `iced` + `winit` configuram internamente para o Android
+(`NativeActivity`). Essa colisão impedia a compilação do `.so` para
+`aarch64-linux-android` — mas `cargo check` no host Linux não detectava o
+problema porque as features de plataforma são diferentes.
+
+**Solução:** Mover `tokio/time`, `tokio/rt` e `futures` para atrás de uma
+feature flag `stream`. O app usa `android-battery` sem essa feature, então
+apenas os tipos e `BatteryManager::current()` (sem deps async) são compilados:
+
+```toml
+# android-battery/Cargo.toml — depois da correção
+[features]
+stream = ["tokio/time", "futures"]
+
+[dependencies]
+tokio   = { version = "1", features = ["sync"], optional = true }
+futures = { version = "0.3", optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni         = { version = "0.21", default-features = false }
+ndk-context = "0.1"
+```
+
+```toml
+# Cargo.toml raiz — sem a feature stream
+android-battery = { path = "crates/android-battery" }
+```
+
+O mesmo padrão foi aplicado a `android-network` e `android-sensors` para
+prevenir o mesmo problema no futuro.
+
+#### 3c. `release.keystore` inexistente no `make release`
+
+**Sintoma:** `make build` (debug) funcionava normalmente com 183 MB.
+`make release` produzia um APK de 4 MB inválido.
+
+**Causa:** O `Cargo.toml` especifica um keystore para assinar o APK de release:
+
+```toml
+[package.metadata.android.signing.release]
+path = "release.keystore"
+```
+
+O arquivo `release.keystore` não existia. O cargo-apk falha silenciosamente
+quando não consegue assinar — gera um APK sem o `.so` em vez de abortar com erro.
+
+O keystore é gerado pelo `make keystore` (parte do `make setup`), mas não
+tinha sido executado neste ambiente.
+
+**Solução:** Gerar o keystore manualmente:
+
+```sh
+keytool -genkeypair -v \
+  -keystore release.keystore \
+  -alias rustandroid \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass rustandroid -keypass rustandroid \
+  -dname "CN=RustAndroid, OU=Dev, O=Itemize, L=Unknown, ST=Unknown, C=BR"
+```
+
+Após isso, `make release` passou a gerar um APK de 4,1 MB — que é o tamanho
+**correto** para um release otimizado e comprimido, ao contrário dos 183 MB do
+debug (que carrega todos os símbolos sem otimização).
+
+---
+
+### 4. Bateria mostrando 85% fixo no dispositivo real
+
+**Sintoma:** O app exibia sempre 85%, independente da carga real do celular.
+
+**Causa:** O `BatteryManager::current()` tinha uma implementação única que
+retornava dados hardcoded (o "stub"), tanto no desktop quanto no Android:
+
+```rust
+pub fn current() -> BatteryState {
+    BatteryState { level: 0.85, is_charging: false, ... } // sempre 85%
+}
+```
+
+O bloco `#[cfg(target_os = "android")]` existia no código mas chamava a mesma
+função `stub()`.
+
+**Solução:** Implementar a leitura real via JNI usando `ndk-context` e `jni 0.21`.
+A função `android_impl::read()` foi adicionada e chamada apenas no Android:
+
+```rust
+pub fn current() -> BatteryState {
+    #[cfg(target_os = "android")]
+    { android_impl::read().unwrap_or_else(stub) }
+    #[cfg(not(target_os = "android"))]
+    { stub() }
+}
+```
+
+O `android_impl::read()` usa `registerReceiver(null, filter)` com
+`ACTION_BATTERY_CHANGED` para ler o sticky broadcast e extrai os extras
+`level`, `scale`, `status`, `temperature` e `voltage` via JNI. Veja a
+explicação detalhada na seção "Como o Rust chama Java" acima.
