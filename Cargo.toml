@@ -13,7 +13,19 @@ path       = "src/lib.rs"
 
 # ── Workspace ─────────────────────────────────────────────────────────────────
 [workspace]
-members = ["desktop"]
+members = [
+    "desktop",
+    "crates/android-jni-bridge",
+    "crates/android-async",
+    "crates/android-permissions",
+    "crates/android-battery",
+    "crates/android-network",
+    "crates/android-sensors",
+    "crates/android-haptics",
+    "crates/android-notifications",
+    "crates/android-push",
+    "crates/android-workmanager",
+]
 
 # ── Common dependencies ───────────────────────────────────────────────────────
 [dependencies]

@@ -1,0 +1,21 @@
+[package]
+name    = "android-push"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio   = { version = "1", features = ["sync", "time", "rt"] }
+futures = "0.3"
+
+# ── Setup Java obrigatório ────────────────────────────────────────────────────
+# Para push real funcionar no Android é necessário:
+#   1. Adicionar google-services.json na raiz do projeto Android
+#   2. Declarar no AndroidManifest.xml:
+#        <service android:name=".RustPushService"
+#                 android:exported="false">
+#          <intent-filter>
+#            <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+#          </intent-filter>
+#        </service>
+#   3. Criar RustPushService.kt que extende FirebaseMessagingService e chama
+#      rust_on_push_message() e rust_on_new_token() via JNI.
