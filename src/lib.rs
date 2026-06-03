@@ -128,18 +128,25 @@ struct App {
 
 impl Default for App {
     fn default() -> Self {
+        // Keep JNI calls at startup minimal: only battery was proven stable.
+        // Everything else is populated lazily on the first Tick or GoTo.
         Self {
             screen: Screen::Battery,
             battery: BatteryManager::current(),
             haptic_log: Vec::new(),
-            network: ConnectivityManager::current(),
+            network: android_network::NetworkState {
+                is_connected: false,
+                network_type: android_network::NetworkType::Unknown,
+                ssid: None,
+                signal_strength: None,
+            },
             notif_channel_ok: false,
-            notif_post_ok: android_permissions::check(&Permission::PostNotifications),
+            notif_post_ok: false,
             notif_count: 0,
             notif_log: Vec::new(),
-            camera_ok: android_permissions::check(&Permission::Camera),
-            location_ok: android_permissions::check(&Permission::AccessFineLocation),
-            body_sensors_ok: android_permissions::check(&Permission::BodySensors),
+            camera_ok: false,
+            location_ok: false,
+            body_sensors_ok: false,
             perm_log: Vec::new(),
             sensor_active: false,
             sensor_snap: SensorSnapshot::default(),
@@ -152,22 +159,18 @@ impl Default for App {
 impl App {
     fn update(&mut self, msg: Message) {
         match msg {
-            Message::GoTo(s) => self.screen = s,
+            Message::GoTo(s) => {
+                self.screen = s;
+                // Refresh immediately when entering a screen so values
+                // don't wait for the next 3-second tick.
+                self.refresh_screen(s);
+            }
 
             Message::Tick => {
+                // Battery is always refreshed — it was stable from the start.
                 self.battery = BatteryManager::current();
-                if self.screen == Screen::Network {
-                    self.network = ConnectivityManager::current();
-                }
-                // Re-check permissions on every tick so results appear
-                // after the user responds to the dialog.
-                self.camera_ok = android_permissions::check(&Permission::Camera);
-                self.location_ok =
-                    android_permissions::check(&Permission::AccessFineLocation);
-                self.body_sensors_ok =
-                    android_permissions::check(&Permission::BodySensors);
-                self.notif_post_ok =
-                    android_permissions::check(&Permission::PostNotifications);
+                // Only refresh the current screen's data.
+                self.refresh_screen(self.screen);
             }
 
             Message::SensorUpdate => {
@@ -315,6 +318,29 @@ impl App {
                 sensor_state().lock().unwrap().active = false;
                 self.sensor_active = false;
             }
+        }
+    }
+
+    // ── Per-screen refresh ───────────────────────────────────────────────────
+    // One JNI domain per screen; never called from App::default().
+
+    fn refresh_screen(&mut self, screen: Screen) {
+        match screen {
+            Screen::Network => {
+                self.network = ConnectivityManager::current();
+            }
+            Screen::Permissions => {
+                self.camera_ok = android_permissions::check(&Permission::Camera);
+                self.location_ok =
+                    android_permissions::check(&Permission::AccessFineLocation);
+                self.body_sensors_ok =
+                    android_permissions::check(&Permission::BodySensors);
+            }
+            Screen::Notifications => {
+                self.notif_post_ok =
+                    android_permissions::check(&Permission::PostNotifications);
+            }
+            _ => {}
         }
     }
 

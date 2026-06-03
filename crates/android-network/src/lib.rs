@@ -177,16 +177,22 @@ mod android_impl {
     }
 
     fn transport(env: &mut jni::JNIEnv<'_>, caps: &JObject<'_>, t: i32) -> bool {
-        env.call_method(caps, "hasTransport", "(I)Z", &[JValue::Int(t)])
+        let r = env
+            .call_method(caps, "hasTransport", "(I)Z", &[JValue::Int(t)])
             .ok()
             .and_then(|v| v.z().ok())
-            .unwrap_or(false)
+            .unwrap_or(false);
+        let _ = env.exception_clear();
+        r
     }
 
     fn capability(env: &mut jni::JNIEnv<'_>, caps: &JObject<'_>, cap: i32) -> bool {
-        env.call_method(caps, "hasCapability", "(I)Z", &[JValue::Int(cap)])
+        let r = env
+            .call_method(caps, "hasCapability", "(I)Z", &[JValue::Int(cap)])
             .ok()
             .and_then(|v| v.z().ok())
-            .unwrap_or(false)
+            .unwrap_or(false);
+        let _ = env.exception_clear();
+        r
     }
 }

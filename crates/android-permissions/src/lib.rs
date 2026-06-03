@@ -213,6 +213,10 @@ mod android_impl {
             "(Ljava/lang/String;)I",
             &[JValue::Object(&perm)],
         );
+        // Must clear any pending Java exception BEFORE the env is dropped.
+        // Dropping AttachGuard with a pending exception calls DetachCurrentThread,
+        // which aborts the JVM.
+        let _ = env.exception_clear();
 
         matches!(result.and_then(|v| v.i()), Ok(code) if code == PERMISSION_GRANTED)
     }
