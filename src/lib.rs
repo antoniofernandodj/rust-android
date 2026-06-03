@@ -367,27 +367,29 @@ impl App {
                 button(lbl)
                     .style(button::primary)
                     .on_press(Message::GoTo(s))
+                    .width(Length::Fill)
             } else {
                 button(lbl)
                     .style(button::secondary)
                     .on_press(Message::GoTo(s))
+                    .width(Length::Fill)
             };
             btn.into()
         }))
         .spacing(4)
-        .padding(8);
+        .padding(iced::Padding { top: 8.0, right: 8.0, bottom: 16.0, left: 8.0 }); // extra bottom para home indicator Android
 
         column![
-            container(nav)
-                .width(Length::Fill)
-                .style(|_| container::Style {
-                    background: Some(iced::Background::Color(Color::from_rgb(0.1, 0.1, 0.12))),
-                    ..Default::default()
-                }),
             container(content)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .padding(16),
+            container(nav)
+                .width(Length::Fill)
+                .style(|_| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgb(0.08, 0.08, 0.10))),
+                    ..Default::default()
+                }),
         ]
         .into()
     }
