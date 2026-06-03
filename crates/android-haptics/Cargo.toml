@@ -2,3 +2,7 @@
 name    = "android-haptics"
 version = "0.1.0"
 edition = "2021"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni         = { version = "0.21", default-features = false }
+ndk-context = "0.1"

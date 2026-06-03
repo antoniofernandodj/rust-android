@@ -9,3 +9,8 @@ stream = ["tokio/time", "futures"]
 [dependencies]
 tokio   = { version = "1", features = ["sync"], optional = true }
 futures = { version = "0.3", optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk-sys     = { version = "0.6", default-features = false }
+ndk-context = "0.1"
+jni         = { version = "0.21", default-features = false }

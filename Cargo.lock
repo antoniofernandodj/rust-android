@@ -103,6 +103,10 @@ dependencies = [
 [[package]]
 name = "android-haptics"
 version = "0.1.0"
+dependencies = [
+ "jni 0.21.1",
+ "ndk-context",
+]
 
 [[package]]
 name = "android-jni-bridge"
@@ -118,6 +122,8 @@ name = "android-network"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "jni 0.21.1",
+ "ndk-context",
  "tokio",
 ]
 
@@ -125,6 +131,8 @@ dependencies = [
 name = "android-notifications"
 version = "0.1.0"
 dependencies = [
+ "jni 0.21.1",
+ "ndk-context",
  "tokio",
 ]
 
@@ -132,6 +140,8 @@ dependencies = [
 name = "android-permissions"
 version = "0.1.0"
 dependencies = [
+ "jni 0.21.1",
+ "ndk-context",
  "tokio",
 ]
 
@@ -154,6 +164,9 @@ name = "android-sensors"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "jni 0.21.1",
+ "ndk-context",
+ "ndk-sys 0.6.0+11769913",
  "tokio",
 ]
 
@@ -2928,11 +2941,18 @@ version = "0.1.0"
 dependencies = [
  "android-activity",
  "android-battery",
+ "android-haptics",
+ "android-network",
+ "android-notifications",
+ "android-permissions",
+ "android-sensors",
  "android_logger",
+ "futures",
  "iced",
  "iced_winit",
  "log",
  "sysinfo",
+ "tokio",
  "winit",
 ]
 
