@@ -87,8 +87,6 @@ mod android_impl {
     const TRANSPORT_WIFI: i32 = 1;
     const TRANSPORT_ETHERNET: i32 = 3;
     const NET_CAPABILITY_INTERNET: i32 = 12;
-    // NET_CAPABILITY_VALIDATED: Android probed and confirmed actual internet access
-    const NET_CAPABILITY_VALIDATED: i32 = 16;
 
     pub fn read() -> Option<NetworkState> {
         let ctx = ndk_context::android_context();
@@ -151,9 +149,6 @@ mod android_impl {
         }
 
         let has_internet = capability(&mut env, &caps, NET_CAPABILITY_INTERNET);
-        // VALIDATED means Android confirmed actual internet, not just a local network
-        let is_validated = capability(&mut env, &caps, NET_CAPABILITY_VALIDATED);
-
         let has_wifi = transport(&mut env, &caps, TRANSPORT_WIFI);
         let has_cellular = transport(&mut env, &caps, TRANSPORT_CELLULAR);
         let has_ethernet = transport(&mut env, &caps, TRANSPORT_ETHERNET);
@@ -168,8 +163,12 @@ mod android_impl {
             NetworkType::Unknown
         };
 
+        // is_connected = Android says the active network can reach the internet.
+        // We intentionally skip NET_CAPABILITY_VALIDATED here because it is false
+        // on VPNs, private-DNS configs, and captive portals even when connectivity
+        // is fully working.
         Some(NetworkState {
-            is_connected: has_internet && is_validated,
+            is_connected: has_internet,
             network_type,
             ssid: None,
             signal_strength: None,

@@ -118,6 +118,10 @@ mod android_impl {
         if vibrator.is_null() { return }
 
         f(&mut env, &vibrator);
+        // Always clear any pending Java exception before the env is dropped.
+        // Dropping AttachGuard with a pending exception calls DetachCurrentThread
+        // which aborts the JVM.
+        let _ = env.exception_clear();
     }
 
     /// `vibrator.vibrate(long)` — deprecated since API 26 but works on API 23–25.

@@ -225,17 +225,27 @@ mod android_impl {
         let ctx = ndk_context::android_context();
         let Ok(vm) = (unsafe { JavaVM::from_raw(ctx.vm().cast()) }) else { return };
         let Ok(mut env) = vm.attach_current_thread() else { return };
-        // NativeActivity.clazz IS the Activity instance
         let activity = unsafe { JObject::from_raw(ctx.context().cast()) };
+        // Inner function uses `?` freely; outer always clears exceptions before env drops.
+        let _ = do_request(&mut env, &activity, permissions, request_code);
+        let _ = env.exception_clear();
+    }
 
-        let Some(arr) = build_string_array(&mut env, permissions) else { return };
-
-        let _ = env.call_method(
-            &activity,
+    fn do_request(
+        env: &mut jni::JNIEnv<'_>,
+        activity: &JObject<'_>,
+        permissions: &[Permission],
+        request_code: i32,
+    ) -> Option<()> {
+        let arr = build_string_array(env, permissions)?;
+        env.call_method(
+            activity,
             "requestPermissions",
             "([Ljava/lang/String;I)V",
             &[JValue::Object(&arr), JValue::Int(request_code)],
-        );
+        )
+        .ok()?;
+        Some(())
     }
 
     fn build_string_array<'a>(

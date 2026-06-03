@@ -240,24 +240,31 @@ mod android_impl {
                 ASensorEventQueue_setEventRate(queue, sensor_ptr, interval_us);
 
                 let mut buf = [std::mem::zeroed::<ndk_sys::ASensorEvent>(); 32];
+                let mut errors: u32 = 0;
 
                 loop {
-                    // Poll with 200 ms timeout — gives the thread a chance to notice
-                    // a dropped receiver even when no events arrive.
                     ALooper_pollAll(
-                        200,
+                        100,
                         std::ptr::null_mut(),
                         std::ptr::null_mut(),
                         std::ptr::null_mut(),
                     );
 
                     let n = ASensorEventQueue_getEvents(queue, buf.as_mut_ptr(), buf.len());
-                    if n < 0 { break; }
+
+                    if n < 0 {
+                        // Transient errors are normal (e.g. queue not yet ready).
+                        // Only give up after many consecutive failures (~5 s).
+                        errors += 1;
+                        if errors > 50 { break; }
+                        continue;
+                    }
+                    errors = 0;
 
                     for event in &buf[..n as usize] {
                         if let Some(e) = convert_event(event, sensor) {
                             if tx.send(e).is_err() {
-                                // Receiver was dropped — clean up and exit.
+                                // Receiver dropped — clean up and exit.
                                 ASensorEventQueue_disableSensor(queue, sensor_ptr);
                                 ASensorManager_destroyEventQueue(mgr, queue);
                                 return;
