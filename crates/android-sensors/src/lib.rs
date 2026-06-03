@@ -144,7 +144,8 @@ mod android_impl {
         ASensorEventQueue_disableSensor, ASensorEventQueue_enableSensor,
         ASensorEventQueue_getEvents, ASensorEventQueue_setEventRate,
         ASensorManager_createEventQueue, ASensorManager_destroyEventQueue,
-        ASensorManager_getDefaultSensor, ASensorManager_getInstanceForPackage,
+        ASensorManager_getDefaultSensor, ASensorManager_getInstance,
+        ASensorManager_getInstanceForPackage,
         ALOOPER_PREPARE_ALLOW_NON_CALLBACKS,
         ASENSOR_TYPE_ACCELEROMETER, ASENSOR_TYPE_GYROSCOPE, ASENSOR_TYPE_MAGNETIC_FIELD,
         ASENSOR_TYPE_PRESSURE, ASENSOR_TYPE_LIGHT, ASENSOR_TYPE_PROXIMITY,
@@ -216,7 +217,11 @@ mod android_impl {
             let pkg_cstr = CString::new(pkg_name).unwrap_or_default();
 
             unsafe {
-                let mgr = ASensorManager_getInstanceForPackage(pkg_cstr.as_ptr());
+                // getInstanceForPackage (API 26+); fall back to deprecated getInstance.
+                let mgr = {
+                    let m = ASensorManager_getInstanceForPackage(pkg_cstr.as_ptr());
+                    if m.is_null() { ASensorManager_getInstance() } else { m }
+                };
                 if mgr.is_null() { return; }
 
                 let sensor_ptr = ASensorManager_getDefaultSensor(mgr, asensor_type);

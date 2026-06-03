@@ -124,7 +124,23 @@ pub fn check(permission: &Permission) -> bool {
     }
 }
 
-/// Request the given permissions from the user.
+/// Fire a permission request dialog without waiting for the result.
+///
+/// **Must be called from the Android UI/main thread** (e.g. inside iced's `update()`).
+/// After the user responds, call `check()` to read the updated state.
+///
+/// On desktop: no-op.
+pub fn fire_request(permissions: &[Permission]) {
+    #[cfg(target_os = "android")]
+    {
+        let code = REQUEST_CODE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        android_impl::request_permissions(permissions, code);
+    }
+    #[cfg(not(target_os = "android"))]
+    let _ = permissions;
+}
+
+/// Request the given permissions from the user (async, awaits result).
 ///
 /// On Android: calls `Activity.requestPermissions` via JNI and awaits the result
 /// via `on_request_permissions_result`.  Times out after 60 s if the user ignores

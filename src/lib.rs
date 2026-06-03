@@ -12,7 +12,7 @@ use std::time::Duration;
 
 const FIRA_SANS: &[u8] = include_bytes!("fonts/FiraSans-Regular.ttf");
 
-// ── Shared sensor state (updated by background task) ─────────────────────────
+// ── Shared sensor state (updated by background task on Android) ───────────────
 
 #[derive(Default, Clone)]
 struct SensorSnapshot {
@@ -27,21 +27,6 @@ struct SensorSnapshot {
 fn sensor_state() -> &'static Mutex<SensorSnapshot> {
     static S: OnceLock<Mutex<SensorSnapshot>> = OnceLock::new();
     S.get_or_init(|| Mutex::new(SensorSnapshot::default()))
-}
-
-// ── Shared async results (permission requests, etc.) ─────────────────────────
-
-fn async_log() -> &'static Mutex<Option<String>> {
-    static L: OnceLock<Mutex<Option<String>>> = OnceLock::new();
-    L.get_or_init(|| Mutex::new(None))
-}
-
-fn take_async_log() -> Option<String> {
-    async_log().lock().unwrap().take()
-}
-
-fn set_async_log(s: impl Into<String>) {
-    *async_log().lock().unwrap() = Some(s.into());
 }
 
 // ── Screens ───────────────────────────────────────────────────────────────────
@@ -99,6 +84,7 @@ enum Message {
 
     // Notifications
     RegisterChannel,
+    RequestPostNotifications,
     ShowNotification,
     ShowProgress,
     CancelNotification,
@@ -120,27 +106,22 @@ enum Message {
 struct App {
     screen: Screen,
 
-    // Battery
     battery: android_battery::BatteryState,
 
-    // Haptics
     haptic_log: Vec<String>,
 
-    // Network
     network: android_network::NetworkState,
 
-    // Notifications
     notif_channel_ok: bool,
+    notif_post_ok: bool,
     notif_count: u32,
     notif_log: Vec<String>,
 
-    // Permissions
     camera_ok: bool,
     location_ok: bool,
     body_sensors_ok: bool,
     perm_log: Vec<String>,
 
-    // Sensors
     sensor_active: bool,
     sensor_snap: SensorSnapshot,
 }
@@ -153,6 +134,7 @@ impl Default for App {
             haptic_log: Vec::new(),
             network: ConnectivityManager::current(),
             notif_channel_ok: false,
+            notif_post_ok: android_permissions::check(&Permission::PostNotifications),
             notif_count: 0,
             notif_log: Vec::new(),
             camera_ok: android_permissions::check(&Permission::Camera),
@@ -169,25 +151,26 @@ impl Default for App {
 
 impl App {
     fn update(&mut self, msg: Message) {
-        // Absorb any pending async log before processing the message
-        if let Some(log) = take_async_log() {
-            match self.screen {
-                Screen::Permissions => self.perm_log.push(log),
-                _ => {}
-            }
-        }
-
         match msg {
             Message::GoTo(s) => self.screen = s,
 
-            Message::Tick | Message::SensorUpdate => {
-                // Absorb async log again on every tick
-                if let Some(log) = take_async_log() {
-                    match self.screen {
-                        Screen::Permissions => self.perm_log.push(log),
-                        _ => {}
-                    }
+            Message::Tick => {
+                self.battery = BatteryManager::current();
+                if self.screen == Screen::Network {
+                    self.network = ConnectivityManager::current();
                 }
+                // Re-check permissions on every tick so results appear
+                // after the user responds to the dialog.
+                self.camera_ok = android_permissions::check(&Permission::Camera);
+                self.location_ok =
+                    android_permissions::check(&Permission::AccessFineLocation);
+                self.body_sensors_ok =
+                    android_permissions::check(&Permission::BodySensors);
+                self.notif_post_ok =
+                    android_permissions::check(&Permission::PostNotifications);
+            }
+
+            Message::SensorUpdate => {
                 // Animate stub values on desktop
                 #[cfg(not(target_os = "android"))]
                 {
@@ -247,6 +230,13 @@ impl App {
                 self.notif_log.push("Canal 'demo' registrado".into());
                 trim_log(&mut self.notif_log);
             }
+            Message::RequestPostNotifications => {
+                // Fire synchronously from update() → runs on the UI thread.
+                android_permissions::fire_request(&[Permission::PostNotifications]);
+                self.notif_log
+                    .push("Pedido POST_NOTIFICATIONS disparado".into());
+                trim_log(&mut self.notif_log);
+            }
             Message::ShowNotification => {
                 self.notif_count += 1;
                 Notification::new("demo")
@@ -264,58 +254,53 @@ impl App {
                     .progress(65, 100)
                     .ongoing(true)
                     .show(self.notif_count);
-                self.notif_log.push(format!("progress(id={}, 65/100)", self.notif_count));
+                self.notif_log
+                    .push(format!("progress(id={}, 65/100)", self.notif_count));
                 trim_log(&mut self.notif_log);
             }
             Message::CancelNotification => {
                 Notification::cancel(self.notif_count);
-                self.notif_log.push(format!("cancel(id={})", self.notif_count));
+                self.notif_log
+                    .push(format!("cancel(id={})", self.notif_count));
                 trim_log(&mut self.notif_log);
             }
 
             // ── Permissions ──────────────────────────────────────────────────
+            // fire_request() must be called here (on the UI thread), not inside
+            // tokio::spawn.  The result is picked up automatically by Message::Tick.
             Message::CheckAll => {
                 self.camera_ok = android_permissions::check(&Permission::Camera);
                 self.location_ok =
                     android_permissions::check(&Permission::AccessFineLocation);
                 self.body_sensors_ok =
                     android_permissions::check(&Permission::BodySensors);
-                self.perm_log.push("check() concluído".into());
+                self.perm_log.push(format!(
+                    "check: câmera={} local={} sensores={}",
+                    yn(self.camera_ok),
+                    yn(self.location_ok),
+                    yn(self.body_sensors_ok)
+                ));
                 trim_log(&mut self.perm_log);
             }
             Message::RequestCamera => {
-                tokio::spawn(async {
-                    match android_permissions::request(&[Permission::Camera]).await {
-                        Ok(()) => set_async_log("Camera: concedida ✓"),
-                        Err(e) => set_async_log(format!("Camera: negada ({:?})", e)),
-                    }
-                });
-                self.perm_log.push("request(Camera) disparado…".into());
+                android_permissions::fire_request(&[Permission::Camera]);
+                self.perm_log
+                    .push("Diálogo câmera exibido — responda e toque em Checar".into());
                 trim_log(&mut self.perm_log);
             }
             Message::RequestLocation => {
-                tokio::spawn(async {
-                    match android_permissions::request(&[
-                        Permission::AccessFineLocation,
-                        Permission::AccessCoarseLocation,
-                    ])
-                    .await
-                    {
-                        Ok(()) => set_async_log("Localização: concedida ✓"),
-                        Err(e) => set_async_log(format!("Localização: negada ({:?})", e)),
-                    }
-                });
-                self.perm_log.push("request(Location) disparado…".into());
+                android_permissions::fire_request(&[
+                    Permission::AccessFineLocation,
+                    Permission::AccessCoarseLocation,
+                ]);
+                self.perm_log
+                    .push("Diálogo localização exibido — responda e toque em Checar".into());
                 trim_log(&mut self.perm_log);
             }
             Message::RequestBodySensors => {
-                tokio::spawn(async {
-                    match android_permissions::request(&[Permission::BodySensors]).await {
-                        Ok(()) => set_async_log("BodySensors: concedida ✓"),
-                        Err(e) => set_async_log(format!("BodySensors: negada ({:?})", e)),
-                    }
-                });
-                self.perm_log.push("request(BodySensors) disparado…".into());
+                android_permissions::fire_request(&[Permission::BodySensors]);
+                self.perm_log
+                    .push("Diálogo sensores exibido — responda e toque em Checar".into());
                 trim_log(&mut self.perm_log);
             }
 
@@ -323,8 +308,6 @@ impl App {
             Message::StartSensor => {
                 sensor_state().lock().unwrap().active = true;
                 self.sensor_active = true;
-
-                // On Android: spawn real sensor tasks
                 #[cfg(target_os = "android")]
                 spawn_sensor_tasks();
             }
@@ -377,7 +360,14 @@ impl App {
             btn.into()
         }))
         .spacing(4)
-        .padding(iced::Padding { top: 8.0, right: 8.0, bottom: 16.0, left: 8.0 }); // extra bottom para home indicator Android
+        .padding(iced::Padding {
+            top: 8.0,
+            right: 8.0,
+            // Extra padding so the nav sits above Android gesture/button bar.
+            // 72 px covers both 3-button nav (48 dp) and gesture bar (32 dp).
+            bottom: 72.0,
+            left: 8.0,
+        });
 
         column![
             container(content)
@@ -432,7 +422,6 @@ impl App {
     // ── Haptics screen ────────────────────────────────────────────────────────
 
     fn view_haptics(&self) -> Element<'_, Message> {
-        let log_view = log_column(&self.haptic_log);
         column![
             title("Haptics / Vibração"),
             text("Efeitos pré-definidos (API 29+):").size(14).color(DIM),
@@ -445,7 +434,6 @@ impl App {
             .spacing(8)
             .wrap(),
             sep(),
-            text("Outros:").size(14).color(DIM),
             row![
                 btn("Buzz 500ms", Message::HapticBuzz),
                 btn("Padrão SOS", Message::HapticPattern),
@@ -455,7 +443,7 @@ impl App {
             .wrap(),
             sep(),
             text("Log:").size(14).color(DIM),
-            log_view,
+            log_column(&self.haptic_log),
         ]
         .spacing(12)
         .into()
@@ -465,34 +453,28 @@ impl App {
 
     fn view_network(&self) -> Element<'_, Message> {
         let n = &self.network;
-        let status_color = if n.is_connected() {
-            Color::from_rgb(0.2, 0.9, 0.3)
+        let (status_text, status_color) = if n.is_connected() {
+            ("● Conectado", Color::from_rgb(0.2, 0.9, 0.3))
         } else {
-            Color::from_rgb(0.9, 0.2, 0.2)
+            ("○ Sem conexão", Color::from_rgb(0.9, 0.2, 0.2))
         };
 
         center(
             column![
                 title("Rede"),
-                text(if n.is_connected() {
-                    "● Conectado"
-                } else {
-                    "○ Sem conexão"
-                })
-                .size(28)
-                .color(status_color),
+                text(status_text).size(28).color(status_color),
                 info(format!("Tipo: {:?}", n.network_type())),
-                info(format!(
-                    "SSID: {}",
-                    n.ssid.as_deref().unwrap_or("—")
-                )),
+                info(format!("SSID: {}", n.ssid.as_deref().unwrap_or("—"))),
                 info(format!(
                     "Sinal: {} dBm",
                     n.signal_strength
                         .map(|s| s.to_string())
                         .unwrap_or("—".into())
                 )),
-                btn("Atualizar", Message::RefreshNetwork),
+                text("(atualiza automático a cada 3s)")
+                    .size(12)
+                    .color(DIM),
+                btn("Atualizar agora", Message::RefreshNetwork),
             ]
             .spacing(16)
             .align_x(Alignment::Center),
@@ -503,22 +485,31 @@ impl App {
     // ── Notifications screen ──────────────────────────────────────────────────
 
     fn view_notifications(&self) -> Element<'_, Message> {
-        let log_view = log_column(&self.notif_log);
-        let channel_status = if self.notif_channel_ok {
-            text("Canal: registrado ✓").size(14).color(Color::from_rgb(0.2, 0.9, 0.3))
+        let post_status = if self.notif_post_ok {
+            text("POST_NOTIFICATIONS: concedida ✓")
+                .size(13)
+                .color(Color::from_rgb(0.2, 0.9, 0.3))
         } else {
-            text("Canal: não registrado").size(14).color(DIM)
+            text("POST_NOTIFICATIONS: negada ✗ (obrigatória no Android 13+)")
+                .size(13)
+                .color(Color::from_rgb(0.9, 0.4, 0.2))
         };
 
         column![
             title("Notificações"),
-            text("1. Registre o canal antes de exibir (Android 8+):")
-                .size(14)
-                .color(DIM),
-            btn("Registrar canal 'demo'", Message::RegisterChannel),
-            channel_status,
+            text("Passo 1 — permissão (Android 13+):").size(14).color(DIM),
+            btn("Pedir POST_NOTIFICATIONS", Message::RequestPostNotifications),
+            post_status,
             sep(),
-            text("2. Exibir notificações:").size(14).color(DIM),
+            text("Passo 2 — registrar canal (Android 8+):").size(14).color(DIM),
+            btn("Registrar canal 'demo'", Message::RegisterChannel),
+            if self.notif_channel_ok {
+                text("Canal: registrado ✓").size(13).color(Color::from_rgb(0.2, 0.9, 0.3))
+            } else {
+                text("Canal: não registrado").size(13).color(DIM)
+            },
+            sep(),
+            text("Passo 3 — exibir:").size(14).color(DIM),
             row![
                 btn("Simples", Message::ShowNotification),
                 btn("Com progresso", Message::ShowProgress),
@@ -529,28 +520,28 @@ impl App {
             info(format!("Última ID: {}", self.notif_count)),
             sep(),
             text("Log:").size(14).color(DIM),
-            log_view,
+            log_column(&self.notif_log),
         ]
-        .spacing(12)
+        .spacing(10)
         .into()
     }
 
     // ── Permissions screen ────────────────────────────────────────────────────
 
     fn view_permissions(&self) -> Element<'_, Message> {
-        let log_view = log_column(&self.perm_log);
-
         column![
             title("Permissões"),
-            text("Estado atual (check()):").size(14).color(DIM),
+            text("Estado (atualiza a cada 3s):").size(14).color(DIM),
             perm_row("CAMERA", self.camera_ok),
             perm_row("ACCESS_FINE_LOCATION", self.location_ok),
             perm_row("BODY_SENSORS", self.body_sensors_ok),
-            btn("Checar todas", Message::CheckAll),
+            btn("Checar todas agora", Message::CheckAll),
             sep(),
-            text("Solicitar ao usuário (requer wiring Kotlin):").size(14).color(DIM),
+            text("Solicitar (chame, responda o diálogo, aguarde o tick):")
+                .size(14)
+                .color(DIM),
             row![
-                btn("Camera", Message::RequestCamera),
+                btn("Câmera", Message::RequestCamera),
                 btn("Localização", Message::RequestLocation),
                 btn("Sensores", Message::RequestBodySensors),
             ]
@@ -558,7 +549,7 @@ impl App {
             .wrap(),
             sep(),
             text("Log:").size(14).color(DIM),
-            log_view,
+            log_column(&self.perm_log),
         ]
         .spacing(12)
         .into()
@@ -568,9 +559,7 @@ impl App {
 
     fn view_sensors(&self) -> Element<'_, Message> {
         let s = &self.sensor_snap;
-        let active = self.sensor_active;
-
-        let status_color = if active {
+        let status_color = if self.sensor_active {
             Color::from_rgb(0.2, 0.9, 0.3)
         } else {
             Color::from_rgb(0.5, 0.5, 0.5)
@@ -583,7 +572,7 @@ impl App {
                 btn_danger("■ Parar", Message::StopSensor),
             ]
             .spacing(8),
-            text(if active { "● Streaming ativo" } else { "○ Inativo" })
+            text(if self.sensor_active { "● Streaming ativo" } else { "○ Inativo" })
                 .size(16)
                 .color(status_color),
             sep(),
@@ -601,11 +590,13 @@ impl App {
             info(format!("{:.1}", s.light)),
             text("Contador de passos").size(14).color(DIM),
             info(format!("{} passos", s.steps)),
-            if !cfg!(target_os = "android") {
-                text("(valores simulados no desktop)").size(12).color(DIM)
+            text(if cfg!(target_os = "android") {
+                "leitura via ASensorManager NDK"
             } else {
-                text("(leitura via ASensorManager NDK)").size(12).color(DIM)
-            },
+                "valores simulados no desktop"
+            })
+            .size(12)
+            .color(DIM),
         ]
         .spacing(12)
         .into()
@@ -623,9 +614,7 @@ fn spawn_sensor_tasks() {
         futures::pin_mut!(stream);
         while let Some(event) = stream.next().await {
             let mut s = sensor_state().lock().unwrap();
-            if !s.active {
-                break;
-            }
+            if !s.active { break; }
             if let SensorEvent::Accelerometer(v) = event {
                 s.accel = [v.x, v.y, v.z];
                 s.tick += 1;
@@ -638,9 +627,7 @@ fn spawn_sensor_tasks() {
         futures::pin_mut!(stream);
         while let Some(event) = stream.next().await {
             let mut s = sensor_state().lock().unwrap();
-            if !s.active {
-                break;
-            }
+            if !s.active { break; }
             if let SensorEvent::Gyroscope(v) = event {
                 s.gyro = [v.x, v.y, v.z];
             }
@@ -652,9 +639,7 @@ fn spawn_sensor_tasks() {
         futures::pin_mut!(stream);
         while let Some(event) = stream.next().await {
             let mut s = sensor_state().lock().unwrap();
-            if !s.active {
-                break;
-            }
+            if !s.active { break; }
             if let SensorEvent::Light(l) = event {
                 s.light = l;
             }
@@ -666,9 +651,7 @@ fn spawn_sensor_tasks() {
         futures::pin_mut!(stream);
         while let Some(event) = stream.next().await {
             let mut s = sensor_state().lock().unwrap();
-            if !s.active {
-                break;
-            }
+            if !s.active { break; }
             if let SensorEvent::StepCounter(n) = event {
                 s.steps = n;
             }
@@ -678,12 +661,11 @@ fn spawn_sensor_tasks() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const DIM: Color = Color {
-    r: 0.55,
-    g: 0.55,
-    b: 0.55,
-    a: 1.0,
-};
+const DIM: Color = Color { r: 0.55, g: 0.55, b: 0.55, a: 1.0 };
+
+fn yn(v: bool) -> &'static str {
+    if v { "sim" } else { "não" }
+}
 
 fn title(s: &str) -> iced::widget::Text<'_> {
     text(s).size(24).color(Color::from_rgb(0.9, 0.9, 0.9))
@@ -714,11 +696,10 @@ fn btn_danger(label: &str, msg: Message) -> iced::widget::Button<'_, Message> {
 }
 
 fn perm_row<'a>(name: &'a str, granted: bool) -> Element<'a, Message> {
-    let dot = if granted { "✓" } else { "✗" };
-    let color = if granted {
-        Color::from_rgb(0.2, 0.9, 0.3)
+    let (dot, color) = if granted {
+        ("✓", Color::from_rgb(0.2, 0.9, 0.3))
     } else {
-        Color::from_rgb(0.9, 0.3, 0.3)
+        ("✗", Color::from_rgb(0.9, 0.3, 0.3))
     };
     row![
         text(dot).size(16).color(color),

@@ -35,7 +35,14 @@ impl ConnectivityManager {
     pub fn current() -> NetworkState {
         #[cfg(target_os = "android")]
         {
-            android_impl::read().unwrap_or_else(stub)
+            // On Android, if JNI fails return "unknown" — never fall back to a stub
+            // that claims the device is connected.
+            android_impl::read().unwrap_or(NetworkState {
+                is_connected: false,
+                network_type: NetworkType::Unknown,
+                ssid: None,
+                signal_strength: None,
+            })
         }
         #[cfg(not(target_os = "android"))]
         {
@@ -79,8 +86,9 @@ mod android_impl {
     const TRANSPORT_CELLULAR: i32 = 0;
     const TRANSPORT_WIFI: i32 = 1;
     const TRANSPORT_ETHERNET: i32 = 3;
-    // NET_CAPABILITY_INTERNET = 12
     const NET_CAPABILITY_INTERNET: i32 = 12;
+    // NET_CAPABILITY_VALIDATED: Android probed and confirmed actual internet access
+    const NET_CAPABILITY_VALIDATED: i32 = 16;
 
     pub fn read() -> Option<NetworkState> {
         let ctx = ndk_context::android_context();
@@ -135,18 +143,16 @@ mod android_impl {
 
         if caps.is_null() {
             return Some(NetworkState {
-                is_connected: true,
-                network_type: NetworkType::Unknown,
+                is_connected: false,
+                network_type: NetworkType::None,
                 ssid: None,
                 signal_strength: None,
             });
         }
 
-        let has_internet = env
-            .call_method(&caps, "hasCapability", "(I)Z", &[JValue::Int(NET_CAPABILITY_INTERNET)])
-            .ok()
-            .and_then(|v| v.z().ok())
-            .unwrap_or(false);
+        let has_internet = capability(&mut env, &caps, NET_CAPABILITY_INTERNET);
+        // VALIDATED means Android confirmed actual internet, not just a local network
+        let is_validated = capability(&mut env, &caps, NET_CAPABILITY_VALIDATED);
 
         let has_wifi = transport(&mut env, &caps, TRANSPORT_WIFI);
         let has_cellular = transport(&mut env, &caps, TRANSPORT_CELLULAR);
@@ -163,15 +169,22 @@ mod android_impl {
         };
 
         Some(NetworkState {
-            is_connected: has_internet,
+            is_connected: has_internet && is_validated,
             network_type,
             ssid: None,
             signal_strength: None,
         })
     }
 
-    fn transport(env: &mut jni::JNIEnv<'_>, caps: &JObject<'_>, transport: i32) -> bool {
-        env.call_method(caps, "hasTransport", "(I)Z", &[JValue::Int(transport)])
+    fn transport(env: &mut jni::JNIEnv<'_>, caps: &JObject<'_>, t: i32) -> bool {
+        env.call_method(caps, "hasTransport", "(I)Z", &[JValue::Int(t)])
+            .ok()
+            .and_then(|v| v.z().ok())
+            .unwrap_or(false)
+    }
+
+    fn capability(env: &mut jni::JNIEnv<'_>, caps: &JObject<'_>, cap: i32) -> bool {
+        env.call_method(caps, "hasCapability", "(I)Z", &[JValue::Int(cap)])
             .ok()
             .and_then(|v| v.z().ok())
             .unwrap_or(false)
