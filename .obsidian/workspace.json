@@ -1,0 +1,203 @@
+{
+  "main": {
+    "id": "20112a29acf9e003",
+    "type": "split",
+    "children": [
+      {
+        "id": "a7eb332326a55f59",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2808eb44ddd470fe",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "roadmap/08-security-and-encryption/01-cryptographic-implementation.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "01-cryptographic-implementation"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "e94b6b17424c333b",
+    "type": "split",
+    "children": [
+      {
+        "id": "c5247fc82c57b062",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0a3d5e31fb821b71",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de arquivos"
+            }
+          },
+          {
+            "id": "11d6e2a646490fd5",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "e9d4fc445d62a9e1",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "0574f98facd8c177",
+    "type": "split",
+    "children": [
+      {
+        "id": "ee23f46c9ca2af0a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "acd7f02bc977f4ad",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "roadmap/08-security-and-encryption/01-cryptographic-implementation.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Links inversos para 01-cryptographic-implementation"
+            }
+          },
+          {
+            "id": "09c10c368a040025",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "roadmap/08-security-and-encryption/01-cryptographic-implementation.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links de saída para 01-cryptographic-implementation"
+            }
+          },
+          {
+            "id": "00984b885d5169c7",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "41bb4c3ebaa9b110",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "ebd034ed6033fcb7",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "roadmap/08-security-and-encryption/01-cryptographic-implementation.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Sumário de 01-cryptographic-implementation"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir a troca rápida": false,
+      "graph:Abrir visualização em gráfico": false,
+      "canvas:Criar novo canvas": false,
+      "daily-notes:Abrir a nota de hoje": false,
+      "templates:Inserir modelo": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "0a3d5e31fb821b71",
+  "lastOpenFiles": [
+    "roadmap/12-deployment-and-distribution/01-package-management.md",
+    "roadmap/12-deployment-and-distribution/01-package-management.md.tmp.56396.17b3810d4d18",
+    "roadmap/11-gui-with-rust/01-rendering-integration.md",
+    "roadmap/11-gui-with-rust/01-rendering-integration.md.tmp.56396.d8595ebe88a4",
+    "roadmap/03-ffi-and-bindings/02-automated-bindings.md",
+    "roadmap/03-ffi-and-bindings/01-java-native-interface.md",
+    "roadmap/02-android-fundamentals/02-ui-layer-basics.md",
+    "roadmap/10-testing-methodologies/02-instrumented-testing.md",
+    "roadmap/10-testing-methodologies/02-instrumented-testing.md.tmp.56396.0fefb3a0d49d",
+    "roadmap/02-android-fundamentals/01-application-lifecycle.md",
+    "roadmap/01-rust-toolchain-setup/01-cross-compilation-targets.md",
+    "roadmap/01-rust-toolchain-setup/02-build-environment.md",
+    "roadmap/10-testing-methodologies/01-unit-testing.md",
+    "roadmap/10-testing-methodologies/01-unit-testing.md.tmp.56396.ac9e9f9f99bf"
+  ]
+}
