@@ -146,8 +146,12 @@ frame.present();
 
 ## Assuntos correlatos
 
+- **Toolkits de UI sobre esta base:** em vez de desenhar widgets na mão, use *Immediate Mode
+  (egui)*, *Retained Mode (iced)* ou *Declarative (Slint)* — todos rodam sobre a surface/event
+  loop descritos aqui.
 - **Quando NÃO renderizar em Rust:** para a maioria dos apps, Compose + núcleo Rust (*UI
   Layer Basics*) é mais simples e idiomático. Renderização própria é para gráficos/jogos.
+- **Empacotar um app de UI Rust no Android:** *Android Integration & Packaging*.
 - **Empacotar como app nativo puro:** `cargo-apk`/`NativeActivity` (ver *Build Environment →
   Cargo mobile integration*).
 - **Ciclo de vida da surface ↔ ciclo de vida da Activity:** *Application Lifecycle*.

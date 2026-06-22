@@ -58,6 +58,10 @@ os links de *Assuntos correlatos*.
 
 ### 11 — GUI with Rust
 - [Rendering Integration](11-gui-with-rust/01-rendering-integration.md)
+- [Immediate Mode UI (egui)](11-gui-with-rust/02-immediate-mode-egui.md)
+- [Retained Mode UI (iced)](11-gui-with-rust/03-retained-mode-iced.md)
+- [Declarative UI (Slint)](11-gui-with-rust/04-declarative-slint.md)
+- [Android Integration & Packaging](11-gui-with-rust/05-android-integration-and-packaging.md)
 
 ### 12 — Deployment and Distribution
 - [Package Management](12-deployment-and-distribution/01-package-management.md)
