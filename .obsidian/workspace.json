@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "roadmap/08-security-and-encryption/01-cryptographic-implementation.md",
+                "file": "roadmap/05-state-management/01-data-synchronization.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "01-cryptographic-implementation"
+              "title": "01-data-synchronization"
             }
           }
         ]
@@ -183,21 +183,34 @@
       "bases:Criar nova base": false
     }
   },
-  "active": "0a3d5e31fb821b71",
+  "active": "2808eb44ddd470fe",
   "lastOpenFiles": [
-    "roadmap/12-deployment-and-distribution/01-package-management.md",
-    "roadmap/12-deployment-and-distribution/01-package-management.md.tmp.56396.17b3810d4d18",
-    "roadmap/11-gui-with-rust/01-rendering-integration.md",
-    "roadmap/11-gui-with-rust/01-rendering-integration.md.tmp.56396.d8595ebe88a4",
-    "roadmap/03-ffi-and-bindings/02-automated-bindings.md",
+    "roadmap/11-gui-with-rust/01-rendering-integration.md.tmp.35564.d01a4a36d803",
+    "roadmap/README.md.tmp.35564.bd728dd3a5e2",
+    "roadmap/11-gui-with-rust/05-android-integration-and-packaging.md",
+    "roadmap/11-gui-with-rust/05-android-integration-and-packaging.md.tmp.35564.8f0d159bf203",
+    "roadmap/11-gui-with-rust/04-declarative-slint.md",
+    "roadmap/11-gui-with-rust/04-declarative-slint.md.tmp.35564.75ee4ab84e44",
+    "roadmap/11-gui-with-rust/03-retained-mode-iced.md",
+    "roadmap/11-gui-with-rust/03-retained-mode-iced.md.tmp.35564.2aaecdcb52fa",
+    "roadmap/11-gui-with-rust/02-immediate-mode-egui.md",
+    "roadmap/11-gui-with-rust/02-immediate-mode-egui.md.tmp.35564.c00ed6f4c659",
+    "roadmap/09-compute-heavy-processing/01-performance-optimization.md",
+    "roadmap/01-rust-toolchain-setup/01-cross-compilation-targets.md",
     "roadmap/03-ffi-and-bindings/01-java-native-interface.md",
+    "roadmap/README.md.tmp.35564.07e1904a9eb6",
+    "roadmap/01-rust-toolchain-setup/02-build-environment.md",
+    "roadmap/12-deployment-and-distribution/01-package-management.md.tmp.35564.237ffeacb82d",
+    "roadmap/11-gui-with-rust/01-rendering-integration.md.tmp.35564.fba8ba06a956",
+    "roadmap/10-testing-methodologies/02-instrumented-testing.md.tmp.35564.f122c5ca5121",
+    "roadmap/10-testing-methodologies/01-unit-testing.md.tmp.35564.f3d5697ea578",
+    "roadmap/08-security-and-encryption/01-cryptographic-implementation.md",
+    "roadmap/12-deployment-and-distribution/01-package-management.md",
+    "roadmap/11-gui-with-rust/01-rendering-integration.md",
+    "roadmap/03-ffi-and-bindings/02-automated-bindings.md",
     "roadmap/02-android-fundamentals/02-ui-layer-basics.md",
     "roadmap/10-testing-methodologies/02-instrumented-testing.md",
-    "roadmap/10-testing-methodologies/02-instrumented-testing.md.tmp.56396.0fefb3a0d49d",
     "roadmap/02-android-fundamentals/01-application-lifecycle.md",
-    "roadmap/01-rust-toolchain-setup/01-cross-compilation-targets.md",
-    "roadmap/01-rust-toolchain-setup/02-build-environment.md",
-    "roadmap/10-testing-methodologies/01-unit-testing.md",
-    "roadmap/10-testing-methodologies/01-unit-testing.md.tmp.56396.ac9e9f9f99bf"
+    "roadmap/10-testing-methodologies/01-unit-testing.md"
   ]
 }
