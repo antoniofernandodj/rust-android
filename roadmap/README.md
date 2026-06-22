@@ -1,7 +1,23 @@
 # Android Rust Development — Roadmap
 
 Baseado no roadmap **Android Rust Development** (roadmap.sh). Cada seção é uma pasta e
-cada tópico (caixa amarela) é um documento, com os subtópicos prontos para preencher.
+cada tópico (caixa amarela) é um documento aprofundado.
+
+## Como ler
+
+Cada documento segue a mesma estrutura, do conceito ao detalhe prático:
+
+- **Visão geral** — o porquê do tópico, o contexto e o modelo mental que organiza o resto.
+- **Subtópicos** — cada um com explicação, exemplo de código e os trade-offs envolvidos.
+- **Armadilhas comuns** — os erros que de fato acontecem na prática e como evitá-los.
+- **Assuntos correlatos** — ligações com outros capítulos (o livro é fortemente interligado).
+- **Referências** — fontes primárias para se aprofundar.
+
+A linha condutora do livro é a arquitetura recomendada: um **núcleo Rust puro e portável**
+(lógica, testável no host) exposto por uma **fachada fina via UniFFI/JNI** a uma **UI fina em
+Compose** — com o Rust como única fonte da verdade. Os capítulos podem ser lidos em ordem
+(toolchain → fundamentos → FFI → integração → … → distribuição) ou de forma avulsa, seguindo
+os links de *Assuntos correlatos*.
 
 ## Índice
 
